@@ -39,13 +39,17 @@ public class CameraActivity extends Activity {
 
         setContentView(R.layout.activity_camera);
 
+
+        //On crée un Overlay sur l'écran
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(this.getApplicationContext())) {
+                //Show screen for controlling which apps can draw on top of other apps
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
                 startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE);
             }
         }
 
+        //Met à jour la fenêtre totale avec le fragment
         if (null == savedInstanceState) {
             getFragmentManager()
                     .beginTransaction()
@@ -53,6 +57,7 @@ public class CameraActivity extends Activity {
                     .commit();
         }
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

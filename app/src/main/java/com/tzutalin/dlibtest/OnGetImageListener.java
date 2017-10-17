@@ -53,34 +53,27 @@ import java.util.List;
 public class OnGetImageListener implements OnImageAvailableListener {
     private static final boolean SAVE_PREVIEW_BITMAP = false;
 
-    private static final int INPUT_SIZE = 224;
     private static final String TAG = "OnGetImageListener";
 
-    private int mScreenRotation = 90;
 
     private int mPreviewWdith = 0;
     private int mPreviewHeight = 0;
     private byte[][] mYUVBytes;
     private int[] mRGBBytes = null;
     private Bitmap mRGBframeBitmap = null;
-    private Bitmap mCroppedBitmap = null;
 
     private boolean mIsComputing = false;
     private Handler mInferenceHandler;
 
     private Context mContext;
     private FaceDet mFaceDet;
-    private TrasparentTitleView mTransparentTitleView;
     private FloatingCameraWindow mWindow;
     private Paint mFaceLandmardkPaint;
 
     public void initialize(
             final Context context,
-            final AssetManager assetManager,
-            final TrasparentTitleView scoreView,
             final Handler handler) {
         this.mContext = context;
-        this.mTransparentTitleView = scoreView;
         this.mInferenceHandler = handler;
         mFaceDet = new FaceDet(Constants.getFaceShapeModelPath());
         mWindow = new FloatingCameraWindow(mContext);
@@ -103,56 +96,17 @@ public class OnGetImageListener implements OnImageAvailableListener {
         }
     }
 
-    private void drawResizedBitmap(final Bitmap src, final Bitmap dst) {
-
-        Display getOrient = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-        int orientation = Configuration.ORIENTATION_UNDEFINED;
-        Point point = new Point();
-        getOrient.getSize(point);
-        int screen_width = point.x;
-        int screen_height = point.y;
-        Log.d(TAG, String.format("screen size (%d,%d)", screen_width, screen_height));
-        if (screen_width < screen_height) {
-            orientation = Configuration.ORIENTATION_PORTRAIT;
-            mScreenRotation = 90;
-        } else {
-            orientation = Configuration.ORIENTATION_LANDSCAPE;
-            mScreenRotation = 0;
-        }
-
-        Assert.assertEquals(dst.getWidth(), dst.getHeight());
-        final float minDim = Math.min(src.getWidth(), src.getHeight());
-
-        final Matrix matrix = new Matrix();
-
-        // We only want the center square out of the original rectangle.
-        final float translateX = -Math.max(0, (src.getWidth() - minDim) / 2);
-        final float translateY = -Math.max(0, (src.getHeight() - minDim) / 2);
-        matrix.preTranslate(translateX, translateY);
-
-        final float scaleFactor = dst.getHeight() / minDim;
-        matrix.postScale(scaleFactor, scaleFactor);
-
-        // Rotate around the center if necessary.
-        if (mScreenRotation != 0) {
-            matrix.postTranslate(-dst.getWidth() / 2.0f, -dst.getHeight() / 2.0f);
-            matrix.postRotate(mScreenRotation);
-            matrix.postTranslate(dst.getWidth() / 2.0f, dst.getHeight() / 2.0f);
-        }
-
-        final Canvas canvas = new Canvas(dst);
-        canvas.drawBitmap(src, matrix, null);
-    }
-
     @Override
     public void onImageAvailable(final ImageReader reader) {
         Image image = null;
+
         try {
             image = reader.acquireLatestImage();
 
             if (image == null) {
                 return;
             }
+
 
             // No mutex needed as this method is not reentrant.
             if (mIsComputing) {
@@ -170,10 +124,8 @@ public class OnGetImageListener implements OnImageAvailableListener {
                 mPreviewWdith = image.getWidth();
                 mPreviewHeight = image.getHeight();
 
-                Log.d(TAG, String.format("Initializing at size %dx%d", mPreviewWdith, mPreviewHeight));
                 mRGBBytes = new int[mPreviewWdith * mPreviewHeight];
                 mRGBframeBitmap = Bitmap.createBitmap(mPreviewWdith, mPreviewHeight, Config.ARGB_8888);
-                mCroppedBitmap = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Config.ARGB_8888);
 
                 mYUVBytes = new byte[planes.length][];
                 for (int i = 0; i < planes.length; ++i) {
@@ -211,10 +163,10 @@ public class OnGetImageListener implements OnImageAvailableListener {
         }
 
         mRGBframeBitmap.setPixels(mRGBBytes, 0, mPreviewWdith, 0, 0, mPreviewWdith, mPreviewHeight);
-        drawResizedBitmap(mRGBframeBitmap, mCroppedBitmap);
+
 
         if (SAVE_PREVIEW_BITMAP) {
-            ImageUtils.saveBitmap(mCroppedBitmap);
+            ImageUtils.saveBitmap(mRGBframeBitmap);
         }
 
         mInferenceHandler.post(
@@ -222,17 +174,13 @@ public class OnGetImageListener implements OnImageAvailableListener {
                     @Override
                     public void run() {
                         if (!new File(Constants.getFaceShapeModelPath()).exists()) {
-                            mTransparentTitleView.setText("Copying landmark model to " + Constants.getFaceShapeModelPath());
                             FileUtils.copyFileFromRawToOthers(mContext, R.raw.shape_predictor_68_face_landmarks, Constants.getFaceShapeModelPath());
                         }
 
-                        long startTime = System.currentTimeMillis();
                         List<VisionDetRet> results;
                         synchronized (OnGetImageListener.this) {
-                            results = mFaceDet.detect(mCroppedBitmap);
+                            results = mFaceDet.detect(mRGBframeBitmap);
                         }
-                        long endTime = System.currentTimeMillis();
-                        mTransparentTitleView.setText("Time cost: " + String.valueOf((endTime - startTime) / 1000f) + " sec");
                         // Draw on bitmap
                         if (results != null) {
                             for (final VisionDetRet ret : results) {
@@ -242,7 +190,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 bounds.top = (int) (ret.getTop() * resizeRatio);
                                 bounds.right = (int) (ret.getRight() * resizeRatio);
                                 bounds.bottom = (int) (ret.getBottom() * resizeRatio);
-                                Canvas canvas = new Canvas(mCroppedBitmap);
+                                Canvas canvas = new Canvas(mRGBframeBitmap);
                                 canvas.drawRect(bounds, mFaceLandmardkPaint);
 
                                 // Draw landmark
@@ -254,8 +202,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 }
                             }
                         }
-
-                        mWindow.setRGBBitmap(mCroppedBitmap);
+                        mWindow.setRGBBitmap(mRGBframeBitmap);
                         mIsComputing = false;
                     }
                 });

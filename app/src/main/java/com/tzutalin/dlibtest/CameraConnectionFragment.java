@@ -25,11 +25,8 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -47,13 +44,13 @@ import android.os.HandlerThread;
 import android.support.v4.app.ActivityCompat;
 import android.util.Size;
 import android.util.SparseArray;
-import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +60,6 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import hugo.weaving.DebugLog;
 import timber.log.Timber;
 
 public class CameraConnectionFragment extends Fragment {
@@ -75,20 +71,12 @@ public class CameraConnectionFragment extends Fragment {
     private static final int MINIMUM_PREVIEW_SIZE = 320;
     private static final String TAG = "CameraConnectionFragment";
 
-    private TrasparentTitleView mScoreView;
 
     /**
      * Conversion from screen rotation to JPEG orientation.
      */
-    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final String FRAGMENT_DIALOG = "dialog";
 
-    static {
-        ORIENTATIONS.append(Surface.ROTATION_0, 90);
-        ORIENTATIONS.append(Surface.ROTATION_90, 0);
-        ORIENTATIONS.append(Surface.ROTATION_180, 270);
-        ORIENTATIONS.append(Surface.ROTATION_270, 180);
-    }
 
     /**
      * {@link android.view.TextureView.SurfaceTextureListener} handles several lifecycle events on a
@@ -97,15 +85,12 @@ public class CameraConnectionFragment extends Fragment {
     private final TextureView.SurfaceTextureListener surfaceTextureListener =
             new TextureView.SurfaceTextureListener() {
                 @Override
-                public void onSurfaceTextureAvailable(
-                        final SurfaceTexture texture, final int width, final int height) {
+                public void onSurfaceTextureAvailable(final SurfaceTexture texture, final int width, final int height) {
                     openCamera(width, height);
                 }
 
                 @Override
-                public void onSurfaceTextureSizeChanged(
-                        final SurfaceTexture texture, final int width, final int height) {
-                    configureTransform(width, height);
+                public void onSurfaceTextureSizeChanged(final SurfaceTexture texture, final int width, final int height) {
                 }
 
                 @Override
@@ -254,7 +239,6 @@ public class CameraConnectionFragment extends Fragment {
      * @return The optimal {@code Size}, or an arbitrary one if none were big enough
      */
     @SuppressLint("LongLogTag")
-    @DebugLog
     private static Size chooseOptimalSize(
             final Size[] choices, final int width, final int height, final Size aspectRatio) {
         // Collect the supported resolutions that are at least as big as the preview Surface
@@ -292,7 +276,6 @@ public class CameraConnectionFragment extends Fragment {
     @Override
     public void onViewCreated(final View view, final Bundle savedInstanceState) {
         textureView = (AutoFitTextureView) view.findViewById(R.id.texture);
-        mScoreView = (TrasparentTitleView) view.findViewById(R.id.results);
     }
 
     @Override
@@ -329,7 +312,6 @@ public class CameraConnectionFragment extends Fragment {
      * @param width  The width of available size for camera preview
      * @param height The height of available size for camera preview
      */
-    @DebugLog
     @SuppressLint("LongLogTag")
     private void setUpCameraOutputs(final int width, final int height) {
         final Activity activity = getActivity();
@@ -357,14 +339,14 @@ public class CameraConnectionFragment extends Fragment {
                 }
             }
 
-            Integer num_facing_back_camera = cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_BACK);
+            Integer num_facing_front_camera = cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_FRONT);
             for (final String cameraId : manager.getCameraIdList()) {
                 final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
                 final Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
                 // If facing back camera or facing external camera exist, we won't use facing front camera
-                if (num_facing_back_camera != null && num_facing_back_camera > 0) {
+                if (num_facing_front_camera != null && num_facing_front_camera > 0) {
                     // We don't use a front facing camera in this sample if there are other camera device facing types
-                    if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                    if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
                         continue;
                     }
                 }
@@ -377,23 +359,24 @@ public class CameraConnectionFragment extends Fragment {
                 }
 
                 // For still image captures, we use the largest available size.
-                final Size largest =
-                        Collections.max(
-                                Arrays.asList(map.getOutputSizes(ImageFormat.YUV_420_888)),
-                                new CompareSizesByArea());
+                final Size largest = Collections.max(Arrays.asList(map.getOutputSizes(ImageFormat.YUV_420_888)), new CompareSizesByArea());
 
                 // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
                 // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
                 // garbage capture data.
-                previewSize =
-                        chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), width, height, largest);
+                previewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class), width, height, largest);
 
                 // We fit the aspect ratio of TextureView to the size of preview we picked.
                 final int orientation = getResources().getConfiguration().orientation;
+
                 if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
                     textureView.setAspectRatio(previewSize.getWidth(), previewSize.getHeight());
+
+
                 } else {
+
                     textureView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
+
                 }
 
                 CameraConnectionFragment.this.cameraId = cameraId;
@@ -413,23 +396,17 @@ public class CameraConnectionFragment extends Fragment {
      * Opens the camera specified by {@link CameraConnectionFragment#cameraId}.
      */
     @SuppressLint("LongLogTag")
-    @DebugLog
     private void openCamera(final int width, final int height) {
         setUpCameraOutputs(width, height);
-        configureTransform(width, height);
         final Activity activity = getActivity();
         final CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         try {
             if (!cameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            if (ActivityCompat.checkSelfPermission(this.getActivity(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                Timber.tag(TAG).w("checkSelfPermission CAMERA");
-            }
+            ActivityCompat.checkSelfPermission(this.getActivity(), Manifest.permission.CAMERA);
             manager.openCamera(cameraId, stateCallback, backgroundHandler);
-            Timber.tag(TAG).d("open Camera");
         } catch (final CameraAccessException e) {
-            Timber.tag(TAG).e("Exception!", e);
         } catch (final InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
         }
@@ -438,7 +415,6 @@ public class CameraConnectionFragment extends Fragment {
     /**
      * Closes the current {@link CameraDevice}.
      */
-    @DebugLog
     private void closeCamera() {
         try {
             cameraOpenCloseLock.acquire();
@@ -467,7 +443,6 @@ public class CameraConnectionFragment extends Fragment {
     /**
      * Starts a background thread and its {@link Handler}.
      */
-    @DebugLog
     private void startBackgroundThread() {
         backgroundThread = new HandlerThread("ImageListener");
         backgroundThread.start();
@@ -482,7 +457,6 @@ public class CameraConnectionFragment extends Fragment {
      * Stops the background thread and its {@link Handler}.
      */
     @SuppressLint("LongLogTag")
-    @DebugLog
     private void stopBackgroundThread() {
         backgroundThread.quitSafely();
         inferenceThread.quitSafely();
@@ -522,7 +496,6 @@ public class CameraConnectionFragment extends Fragment {
      * Creates a new {@link CameraCaptureSession} for camera preview.
      */
     @SuppressLint("LongLogTag")
-    @DebugLog
     private void createCameraPreviewSession() {
         try {
             final SurfaceTexture texture = textureView.getSurfaceTexture();
@@ -576,7 +549,6 @@ public class CameraConnectionFragment extends Fragment {
                                 captureSession.setRepeatingRequest(
                                         previewRequest, captureCallback, backgroundHandler);
                             } catch (final CameraAccessException e) {
-                                Timber.tag(TAG).e("Exception!", e);
                             }
                         }
 
@@ -587,45 +559,10 @@ public class CameraConnectionFragment extends Fragment {
                     },
                     null);
         } catch (final CameraAccessException e) {
-            Timber.tag(TAG).e("Exception!", e);
+
         }
 
-        mOnGetPreviewListener.initialize(getActivity().getApplicationContext(), getActivity().getAssets(), mScoreView, inferenceHandler);
-    }
-
-    /**
-     * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
-     * This method should be called after the camera preview size is determined in
-     * setUpCameraOutputs and also the size of `mTextureView` is fixed.
-     *
-     * @param viewWidth  The width of `mTextureView`
-     * @param viewHeight The height of `mTextureView`
-     */
-    @DebugLog
-    private void configureTransform(final int viewWidth, final int viewHeight) {
-        final Activity activity = getActivity();
-        if (null == textureView || null == previewSize || null == activity) {
-            return;
-        }
-        final int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        final Matrix matrix = new Matrix();
-        final RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
-        final RectF bufferRect = new RectF(0, 0, previewSize.getHeight(), previewSize.getWidth());
-        final float centerX = viewRect.centerX();
-        final float centerY = viewRect.centerY();
-        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
-            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
-            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
-            final float scale =
-                    Math.max(
-                            (float) viewHeight / previewSize.getHeight(),
-                            (float) viewWidth / previewSize.getWidth());
-            matrix.postScale(scale, scale, centerX, centerY);
-            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
-        } else if (Surface.ROTATION_180 == rotation) {
-            matrix.postRotate(180, centerX, centerY);
-        }
-        textureView.setTransform(matrix);
+        mOnGetPreviewListener.initialize(getActivity().getApplicationContext(), inferenceHandler);
     }
 
     /**

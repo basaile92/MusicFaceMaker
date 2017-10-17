@@ -74,11 +74,11 @@ public class FloatingCameraWindow {
             mScreenMaxHeight = display.getHeight();
         }
         // Default window size
-        mWindowWidth = mScreenMaxWidth / 2;
-        mWindowHeight = mScreenMaxHeight / 2;
+        mWindowWidth = mScreenMaxWidth;
+        mWindowHeight = mScreenMaxHeight;
 
-        mWindowWidth = mWindowWidth > 0 && mWindowWidth < mScreenMaxWidth ? mWindowWidth : mScreenMaxWidth;
-        mWindowHeight = mWindowHeight > 0 && mWindowHeight < mScreenMaxHeight ? mWindowHeight : mScreenMaxHeight;
+        mWindowWidth = mWindowWidth > 0 && mWindowWidth < mScreenMaxWidth ? mWindowHeight : mScreenMaxHeight;
+        mWindowHeight = mWindowHeight > 0 && mWindowHeight < mScreenMaxHeight ? mWindowWidth : mScreenMaxWidth;
     }
 
     public FloatingCameraWindow(Context context, int windowWidth, int windowHeight) {
@@ -90,11 +90,6 @@ public class FloatingCameraWindow {
 
         mScaleWidthRatio = (float) windowWidth / mWindowHeight;
         mScaleHeightRatio = (float) windowHeight / mWindowHeight;
-
-        if (DEBUG) {
-            Log.d(TAG, "mScaleWidthRatio: " + mScaleWidthRatio);
-            Log.d(TAG, "mScaleHeightRatio: " + mScaleHeightRatio);
-        }
 
         mWindowWidth = windowWidth;
         mWindowHeight = windowHeight;
@@ -155,27 +150,6 @@ public class FloatingCameraWindow {
         });
     }
 
-    public void setFPS(final float fps) {
-        checkInit();
-        mUIHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                checkInit();
-                mRootView.setFPS(fps);
-            }
-        });
-    }
-
-    public void setMoreInformation(final String info) {
-        checkInit();
-        mUIHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                checkInit();
-                mRootView.setMoreInformation(info);
-            }
-        });
-    }
 
     private void checkInit() {
         if (mRootView == null) {
@@ -186,36 +160,17 @@ public class FloatingCameraWindow {
     @UiThread
     private final class FloatCamView extends FrameLayout {
         private WeakReference<FloatingCameraWindow> mWeakRef;
-        private static final int MOVE_THRESHOLD = 10;
-        private int mLastX;
-        private int mLastY;
-        private int mFirstX;
-        private int mFirstY;
         private LayoutInflater mLayoutInflater;
         private ImageView mColorView;
-        private TextView mFPSText;
-        private TextView mInfoText;
-        private boolean mIsMoving = false;
 
         public FloatCamView(FloatingCameraWindow window) {
             super(window.mContext);
             mWeakRef = new WeakReference<FloatingCameraWindow>(window);
-            // mLayoutInflater = LayoutInflater.from(context);
             mLayoutInflater = (LayoutInflater) window.mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             FrameLayout body = (FrameLayout) this;
-            body.setOnTouchListener(new OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    return false;
-                }
-            });
 
-            View floatView = mLayoutInflater.inflate(R.layout.cam_window_view, body, true);
+            mLayoutInflater.inflate(R.layout.cam_window_view, body, true);
             mColorView = (ImageView) findViewById(R.id.imageView_c);
-            mFPSText = (TextView) findViewById(R.id.fps_textview);
-            mInfoText = (TextView) findViewById(R.id.info_textview);
-            mFPSText.setVisibility(View.GONE);
-            mInfoText.setVisibility(View.GONE);
 
             int colorMaxWidth = (int) (mWindowWidth* window.mScaleWidthRatio);
             int colorMaxHeight = (int) (mWindowHeight * window.mScaleHeightRatio);
@@ -224,43 +179,6 @@ public class FloatingCameraWindow {
             mColorView.getLayoutParams().height = colorMaxHeight;
         }
 
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    mLastX = (int) event.getRawX();
-                    mLastY = (int) event.getRawY();
-                    mFirstX = mLastX;
-                    mFirstY = mLastY;
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    int deltaX = (int) event.getRawX() - mLastX;
-                    int deltaY = (int) event.getRawY() - mLastY;
-                    mLastX = (int) event.getRawX();
-                    mLastY = (int) event.getRawY();
-                    int totalDeltaX = mLastX - mFirstX;
-                    int totalDeltaY = mLastY - mFirstY;
-
-                    if (mIsMoving
-                            || Math.abs(totalDeltaX) >= MOVE_THRESHOLD
-                            || Math.abs(totalDeltaY) >= MOVE_THRESHOLD) {
-                        mIsMoving = true;
-                        WindowManager windowMgr = mWeakRef.get().mWindowManager;
-                        WindowManager.LayoutParams parm = mWeakRef.get().mWindowParam;
-                        if (event.getPointerCount() == 1 && windowMgr != null) {
-                            parm.x -= deltaX;
-                            parm.y -= deltaY;
-                            windowMgr.updateViewLayout(this, parm);
-                        }
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                    mIsMoving = false;
-                    break;
-            }
-            return true;
-        }
 
         public void setRGBImageView(Bitmap rgb) {
             if (rgb != null && !rgb.isRecycled()) {
@@ -268,23 +186,6 @@ public class FloatingCameraWindow {
             }
         }
 
-        public void setFPS(float fps) {
-            if (mFPSText != null) {
-                if (mFPSText.getVisibility() == View.GONE) {
-                    mFPSText.setVisibility(View.VISIBLE);
-                }
-                mFPSText.setText(String.format("FPS: %.2f", fps));
-            }
-        }
-
-        public void setMoreInformation(String info) {
-            if (mInfoText != null) {
-                if (mInfoText.getVisibility() == View.GONE) {
-                    mInfoText.setVisibility(View.VISIBLE);
-                }
-                mInfoText.setText(info);
-            }
-        }
     }
 
 }
