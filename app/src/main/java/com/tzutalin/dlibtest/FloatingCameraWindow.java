@@ -17,11 +17,14 @@
 package com.tzutalin.dlibtest;
 
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceScreen;
 import android.support.annotation.UiThread;
 import android.util.Log;
 import android.view.Display;
@@ -132,7 +135,7 @@ public class FloatingCameraWindow {
 
         mWindowParam.alpha = 1.0f;
 
-        mWindowParam.gravity = Gravity.BOTTOM | Gravity.RIGHT;
+        mWindowParam.gravity = Gravity.CENTER | Gravity.CENTER;
         mWindowParam.x = 0;
         mWindowParam.y = 0;
         mWindowParam.width = mWindowWidth;
@@ -177,6 +180,7 @@ public class FloatingCameraWindow {
 
             mColorView.getLayoutParams().width = colorMaxWidth;
             mColorView.getLayoutParams().height = colorMaxHeight;
+            mColorView.setAdjustViewBounds(true);
         }
 
 

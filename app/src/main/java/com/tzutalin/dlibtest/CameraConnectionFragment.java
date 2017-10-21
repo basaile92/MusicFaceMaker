@@ -27,6 +27,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -44,6 +46,7 @@ import android.os.HandlerThread;
 import android.support.v4.app.ActivityCompat;
 import android.util.Size;
 import android.util.SparseArray;
+import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
@@ -70,6 +73,15 @@ public class CameraConnectionFragment extends Fragment {
      */
     private static final int MINIMUM_PREVIEW_SIZE = 320;
     private static final String TAG = "CameraConnectionFragment";
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 90);
+        ORIENTATIONS.append(Surface.ROTATION_180, 180);
+        ORIENTATIONS.append(Surface.ROTATION_270, 270);
+    }
+
 
 
     /**
@@ -86,11 +98,14 @@ public class CameraConnectionFragment extends Fragment {
             new TextureView.SurfaceTextureListener() {
                 @Override
                 public void onSurfaceTextureAvailable(final SurfaceTexture texture, final int width, final int height) {
-                    openCamera(width, height);
+                    setUpCameraOutputs(width, height);
+                    configureTransform(width, height);
+                    openCamera();
                 }
 
                 @Override
                 public void onSurfaceTextureSizeChanged(final SurfaceTexture texture, final int width, final int height) {
+                    configureTransform(width, height);
                 }
 
                 @Override
@@ -248,17 +263,14 @@ public class CameraConnectionFragment extends Fragment {
                 Timber.tag(TAG).i("Adding size: " + option.getWidth() + "x" + option.getHeight());
                 bigEnough.add(option);
             } else {
-                Timber.tag(TAG).i("Not adding size: " + option.getWidth() + "x" + option.getHeight());
             }
         }
 
         // Pick the smallest of those, assuming we found any
         if (bigEnough.size() > 0) {
             final Size chosenSize = Collections.min(bigEnough, new CompareSizesByArea());
-            Timber.tag(TAG).i("Chosen size: " + chosenSize.getWidth() + "x" + chosenSize.getHeight());
             return chosenSize;
         } else {
-            Timber.tag(TAG).e("Couldn't find any suitable preview size");
             return choices[0];
         }
     }
@@ -293,7 +305,9 @@ public class CameraConnectionFragment extends Fragment {
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
         if (textureView.isAvailable()) {
-            openCamera(textureView.getWidth(), textureView.getHeight());
+            setUpCameraOutputs(textureView.getWidth(), textureView.getHeight());
+            configureTransform(textureView.getWidth(), textureView.getHeight());
+            openCamera();
         } else {
             textureView.setSurfaceTextureListener(surfaceTextureListener);
         }
@@ -322,19 +336,19 @@ public class CameraConnectionFragment extends Fragment {
             for (final String cameraId : manager.getCameraIdList()) {
                 final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
                 final Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                    if (cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_FRONT) != null) {
-                        cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_FRONT, cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_FRONT) + 1);
+                if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                    if (cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_BACK) != null) {
+                        cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_BACK, cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_BACK) + 1);
                     } else {
                         cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_FRONT, 1);
                     }
                 }
 
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_BACK) {
+                if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
                     if (cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_FRONT) != null) {
-                        cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_BACK, cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_BACK) + 1);
+                        cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_FRONT, cameraFaceTypeMap.get(CameraCharacteristics.LENS_FACING_FRONT) + 1);
                     } else {
-                        cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_BACK, 1);
+                        cameraFaceTypeMap.append(CameraCharacteristics.LENS_FACING_FRONT, 1);
                     }
                 }
             }
@@ -368,22 +382,19 @@ public class CameraConnectionFragment extends Fragment {
 
                 // We fit the aspect ratio of TextureView to the size of preview we picked.
                 final int orientation = getResources().getConfiguration().orientation;
-
                 if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
                     textureView.setAspectRatio(previewSize.getWidth(), previewSize.getHeight());
-
-
                 } else {
-
                     textureView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
-
                 }
+
+                textureView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
+
 
                 CameraConnectionFragment.this.cameraId = cameraId;
                 return;
             }
         } catch (final CameraAccessException e) {
-            Timber.tag(TAG).e("Exception!", e);
         } catch (final NullPointerException e) {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
@@ -396,8 +407,7 @@ public class CameraConnectionFragment extends Fragment {
      * Opens the camera specified by {@link CameraConnectionFragment#cameraId}.
      */
     @SuppressLint("LongLogTag")
-    private void openCamera(final int width, final int height) {
-        setUpCameraOutputs(width, height);
+    private void openCamera() {
         final Activity activity = getActivity();
         final CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         try {
@@ -511,8 +521,6 @@ public class CameraConnectionFragment extends Fragment {
             previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             previewRequestBuilder.addTarget(surface);
 
-            Timber.tag(TAG).i("Opening camera preview: " + previewSize.getWidth() + "x" + previewSize.getHeight());
-
             // Create the reader for the preview frames.
             previewReader =
                     ImageReader.newInstance(
@@ -543,6 +551,9 @@ public class CameraConnectionFragment extends Fragment {
                                 // Flash is automatically enabled when necessary.
                                 previewRequestBuilder.set(
                                         CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+
+
+
 
                                 // Finally, we start displaying the camera preview.
                                 previewRequest = previewRequestBuilder.build();
@@ -577,11 +588,44 @@ public class CameraConnectionFragment extends Fragment {
         }
     }
 
+    private void configureTransform(final int viewWidth, final int viewHeight) {
+        final Activity activity = getActivity();
+        if (null == textureView || null == previewSize || null == activity) {
+            return;
+        }
+        final int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        final Matrix matrix = new Matrix();
+        final RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+        final RectF bufferRect = new RectF(0, 0, previewSize.getHeight(), previewSize.getWidth());
+        final float centerX = viewRect.centerX();
+        final float centerY = viewRect.centerY();
+        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+            final float scale =
+                    Math.max(
+                            (float) viewHeight / previewSize.getHeight(),
+                            (float) viewWidth / previewSize.getWidth());
+            matrix.postScale(scale, scale, centerX, centerY);
+            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+        } else if (Surface.ROTATION_180 == rotation) {
+            matrix.postRotate(180, centerX, centerY);
+        }
+        textureView.setTransform(matrix);
+    }
+
+
+
+
+
     /**
      * Shows an error message dialog.
      */
     public static class ErrorDialog extends DialogFragment {
         private static final String ARG_MESSAGE = "message";
+
+
+
 
         public static ErrorDialog newInstance(final String message) {
             final ErrorDialog dialog = new ErrorDialog();

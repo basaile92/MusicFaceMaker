@@ -41,8 +41,6 @@ import com.tzutalin.dlib.Constants;
 import com.tzutalin.dlib.FaceDet;
 import com.tzutalin.dlib.VisionDetRet;
 
-import junit.framework.Assert;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,14 +51,15 @@ import java.util.List;
 public class OnGetImageListener implements OnImageAvailableListener {
     private static final boolean SAVE_PREVIEW_BITMAP = false;
 
-    private static final String TAG = "OnGetImageListener";
-
-
     private int mPreviewWdith = 0;
     private int mPreviewHeight = 0;
     private byte[][] mYUVBytes;
     private int[] mRGBBytes = null;
     private Bitmap mRGBframeBitmap = null;
+    private Bitmap mCroppedBitmap = null;
+
+    private int mScreenRotation = 90;
+
 
     private boolean mIsComputing = false;
     private Handler mInferenceHandler;
@@ -96,13 +95,74 @@ public class OnGetImageListener implements OnImageAvailableListener {
         }
     }
 
-    @Override
+    private float[] multiply(float[] A, float[] B) {
+
+
+        float[] C = new float[9];
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                C[3*i + j] = 0.00000f;
+            }
+        }
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 3; k++) {
+                    C[3*i + j] += A[3*i+ k] * B[3* k + j];
+                }
+            }
+        }
+
+        return C;
+    }
+
+
+    private void drawResizedBitmap(final Bitmap src, final Bitmap dst) {
+
+        float[] mirrorY = { -1, 0, 0, 0, 1, 0, 0, 0, 1};
+        Display getOrient = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        int orientation = Configuration.ORIENTATION_UNDEFINED;
+        Point point = new Point();
+        getOrient.getSize(point);
+        int screen_width = point.x;
+        int screen_height = point.y;
+        orientation = Configuration.ORIENTATION_PORTRAIT;
+        mScreenRotation = 270;
+
+        final float minDim = Math.min(src.getWidth(), src.getHeight());
+
+        final Matrix matrix = new Matrix();
+
+        // We only want the center square out of the original rectangle.
+        final float translateX = -Math.max(0, (src.getWidth() - minDim) / 2);
+        final float translateY = -Math.max(0, (src.getHeight() - minDim) / 2);
+        matrix.preTranslate(translateX, translateY);
+
+
+        final float scaleFactor = dst.getHeight() / minDim;
+        matrix.postScale( scaleFactor, scaleFactor);
+
+
+        matrix.postTranslate( -dst.getWidth() / 2.0f,  -dst.getHeight() / 2.0f);
+        matrix.postRotate(mScreenRotation);
+        matrix.postTranslate(dst.getWidth() / 2.0f, dst.getHeight() / 2.0f);
+        matrix.postScale( -1 , 1 );
+        matrix.postTranslate(dst.getWidth(), 0);
+
+        final Canvas canvas = new Canvas(dst);
+        canvas.drawBitmap(src, matrix, null);
+        canvas.scale(-1, 1);
+
+    }
+
+
+
+        @Override
     public void onImageAvailable(final ImageReader reader) {
         Image image = null;
 
         try {
             image = reader.acquireLatestImage();
-
             if (image == null) {
                 return;
             }
@@ -115,7 +175,6 @@ public class OnGetImageListener implements OnImageAvailableListener {
             }
             mIsComputing = true;
 
-            Trace.beginSection("imageAvailable");
 
             final Plane[] planes = image.getPlanes();
 
@@ -126,6 +185,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
 
                 mRGBBytes = new int[mPreviewWdith * mPreviewHeight];
                 mRGBframeBitmap = Bitmap.createBitmap(mPreviewWdith, mPreviewHeight, Config.ARGB_8888);
+                mCroppedBitmap = Bitmap.createBitmap(mPreviewWdith, mPreviewHeight, Config.ARGB_8888);
 
                 mYUVBytes = new byte[planes.length][];
                 for (int i = 0; i < planes.length; ++i) {
@@ -157,16 +217,15 @@ public class OnGetImageListener implements OnImageAvailableListener {
             if (image != null) {
                 image.close();
             }
-            Log.e(TAG, "Exception!", e);
-            Trace.endSection();
             return;
         }
 
         mRGBframeBitmap.setPixels(mRGBBytes, 0, mPreviewWdith, 0, 0, mPreviewWdith, mPreviewHeight);
+        drawResizedBitmap(mRGBframeBitmap, mCroppedBitmap );
 
 
         if (SAVE_PREVIEW_BITMAP) {
-            ImageUtils.saveBitmap(mRGBframeBitmap);
+            ImageUtils.saveBitmap(mCroppedBitmap);
         }
 
         mInferenceHandler.post(
@@ -179,7 +238,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
 
                         List<VisionDetRet> results;
                         synchronized (OnGetImageListener.this) {
-                            results = mFaceDet.detect(mRGBframeBitmap);
+                            results = mFaceDet.detect(mCroppedBitmap);
                         }
                         // Draw on bitmap
                         if (results != null) {
@@ -190,7 +249,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 bounds.top = (int) (ret.getTop() * resizeRatio);
                                 bounds.right = (int) (ret.getRight() * resizeRatio);
                                 bounds.bottom = (int) (ret.getBottom() * resizeRatio);
-                                Canvas canvas = new Canvas(mRGBframeBitmap);
+                                Canvas canvas = new Canvas(mCroppedBitmap);
                                 canvas.drawRect(bounds, mFaceLandmardkPaint);
 
                                 // Draw landmark
@@ -202,7 +261,7 @@ public class OnGetImageListener implements OnImageAvailableListener {
                                 }
                             }
                         }
-                        mWindow.setRGBBitmap(mRGBframeBitmap);
+                        mWindow.setRGBBitmap(mCroppedBitmap);
                         mIsComputing = false;
                     }
                 });
