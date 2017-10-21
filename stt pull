@@ -1,0 +1,126 @@
+[1mdiff --git a/.idea/.name b/.idea/.name[m
+[1mdeleted file mode 100644[m
+[1mindex 2287f9a..0000000[m
+[1m--- a/.idea/.name[m
+[1m+++ /dev/null[m
+[36m@@ -1 +0,0 @@[m
+[31m-dlib-android-app[m
+\ No newline at end of file[m
+[1mdiff --git a/.idea/modules.xml b/.idea/modules.xml[m
+[1mindex cbb25db..106303a 100644[m
+[1m--- a/.idea/modules.xml[m
+[1m+++ b/.idea/modules.xml[m
+[36m@@ -2,6 +2,7 @@[m
+ <project version="4">[m
+   <component name="ProjectModuleManager">[m
+     <modules>[m
+[32m+[m[32m      <module fileurl="file://$PROJECT_DIR$/MusicFaceMaker.iml" filepath="$PROJECT_DIR$/MusicFaceMaker.iml" />[m
+       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />[m
+       <module fileurl="file://$PROJECT_DIR$/dlib/dlib.iml" filepath="$PROJECT_DIR$/dlib/dlib.iml" />[m
+       <module fileurl="file://$PROJECT_DIR$/dlib-android-app.iml" filepath="$PROJECT_DIR$/dlib-android-app.iml" />[m
+[1mdiff --git a/app/app.iml b/app/app.iml[m
+[1mindex dfd8fb7..0a75a51 100644[m
+[1m--- a/app/app.iml[m
+[1m+++ b/app/app.iml[m
+[36m@@ -76,14 +76,27 @@[m
+       <sourceFolder url="file://$MODULE_DIR$/src/androidTest/java" isTestSource="true" />[m
+       <sourceFolder url="file://$MODULE_DIR$/src/androidTest/rs" isTestSource="true" />[m
+       <sourceFolder url="file://$MODULE_DIR$/src/androidTest/shaders" isTestSource="true" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/assets" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/blame" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/builds" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/classes" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental-classes" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental-runtime-classes" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental-safeguard" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/incremental-verifier" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant-run-resources" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/instant-run-support" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/jniLibs" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/manifests" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/reload-dex" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/res" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/restart-dex" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/rs" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/shaders" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/split-apk" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/symbols" />[m
+[32m+[m[32m      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/transforms" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/outputs" />[m
+       <excludeFolder url="file://$MODULE_DIR$/build/tmp" />[m
+     </content>[m
+[36m@@ -93,9 +106,10 @@[m
+     <orderEntry type="library" exported="" scope="TEST" name="runner-0.5" level="project" />[m
+     <orderEntry type="library" exported="" name="picasso-2.4.0" level="project" />[m
+     <orderEntry type="library" exported="" scope="TEST" name="hamcrest-library-1.3" level="project" />[m
+[32m+[m[32m    <orderEntry type="library" exported="" name="transition-25.3.1" level="project" />[m
+[32m+[m[32m    <orderEntry type="library" exported="" name="design-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="hugo-runtime-1.2.1" level="project" />[m
+     <orderEntry type="library" exported="" name="support-core-ui-25.3.1" level="project" />[m
+[31m-    <orderEntry type="library" exported="" name="recyclerview-v7-23.3.0" level="project" />[m
+     <orderEntry type="library" exported="" name="materiallist-3.0.1" level="project" />[m
+     <orderEntry type="library" exported="" name="support-core-utils-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="support-fragment-25.3.1" level="project" />[m
+[36m@@ -104,12 +118,12 @@[m
+     <orderEntry type="library" exported="" scope="TEST" name="exposed-instrumentation-api-publish-0.5" level="project" />[m
+     <orderEntry type="library" exported="" scope="TEST" name="rules-0.5" level="project" />[m
+     <orderEntry type="library" exported="" name="aspectjrt-1.8.5" level="project" />[m
+[31m-    <orderEntry type="library" exported="" name="design-23.3.0" level="project" />[m
+     <orderEntry type="library" exported="" name="support-v4-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="support-media-compat-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" scope="TEST" name="hamcrest-core-1.3" level="project" />[m
+     <orderEntry type="library" exported="" name="timber-4.5.1" level="project" />[m
+     <orderEntry type="library" exported="" scope="TEST" name="junit-4.12" level="project" />[m
+[32m+[m[32m    <orderEntry type="library" exported="" name="recyclerview-v7-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="support-annotations-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="appcompat-v7-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="support-vector-drawable-25.3.1" level="project" />[m
+[36m@@ -117,5 +131,6 @@[m
+     <orderEntry type="library" exported="" name="animated-vector-drawable-25.3.1" level="project" />[m
+     <orderEntry type="library" exported="" name="cardview-v7-22.2.0" level="project" />[m
+     <orderEntry type="module" module-name="dlib" exported="" />[m
+[32m+[m[32m    <orderEntry type="library" exported="" name="android-android-25" level="project" />[m
+   </component>[m
+ </module>[m
+\ No newline at end of file[m
+[1mdiff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml[m
+[1mindex 6a19844..89559a4 100644[m
+[1m--- a/app/src/main/AndroidManifest.xml[m
+[1m+++ b/app/src/main/AndroidManifest.xml[m
+[36m@@ -17,11 +17,13 @@[m
+         android:label="@string/app_name"[m
+         android:supportsRtl="true"[m
+         android:theme="@style/AppTheme">[m
+[32m+[m
+[32m+[m
+         <activity[m
+[31m-            android:name=".MainActivity_"[m
+[32m+[m[32m            android:name=".CameraActivity"[m
+             android:configChanges="orientation|screenSize"[m
+[31m-            android:label="@string/app_name"[m
+[31m-            android:theme="@style/AppTheme.NoActionBar">[m
+[32m+[m[32m            android:label="@string/app_name">[m
+[32m+[m
+             <intent-filter>[m
+                 <action android:name="android.intent.action.MAIN"/>[m
+ [m
+[36m@@ -29,12 +31,6 @@[m
+             </intent-filter>[m
+ [m
+         </activity>[m
+[31m-[m
+[31m-        <activity[m
+[31m-            android:name=".CameraActivity"[m
+[31m-            android:configChanges="orientation|screenSize"[m
+[31m-            android:label="@string/app_name">[m
+[31m-        </activity>[m
+     </application>[m
+ [m
+ </manifest>[m
+[1mdiff --git a/app/src/main/java/com/tzutalin/dlibtest/CameraConnectionFragment.java b/app/src/main/java/com/tzutalin/dlibtest/CameraConnectionFragment.java[m
+[1mindex 8c327b2..3723968 100644[m
+[1m--- a/app/src/main/java/com/tzutalin/dlibtest/CameraConnectionFragment.java[m
+[1m+++ b/app/src/main/java/com/tzutalin/dlibtest/CameraConnectionFragment.java[m
+[36m@@ -72,7 +72,7 @@[m [mpublic class CameraConnectionFragment extends Fragment {[m
+      * The camera preview size will be chosen to be the sm
