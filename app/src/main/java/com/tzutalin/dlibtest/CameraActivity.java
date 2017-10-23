@@ -16,12 +16,16 @@
 
 package com.tzutalin.dlibtest;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -31,6 +35,9 @@ import android.widget.Toast;
 public class CameraActivity extends Activity {
 
     private static int OVERLAY_PERMISSION_REQ_CODE = 1;
+    private static final int MY_PERMISSIONS_CAMERA = 2;
+    private static final int MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE = 3;
+
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -51,14 +58,76 @@ public class CameraActivity extends Activity {
 
         //Met à jour la fenêtre totale avec le fragment
         if (null == savedInstanceState) {
-            getFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.container, CameraConnectionFragment.newInstance())
-                    .commit();
+
+            if(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, MY_PERMISSIONS_CAMERA);
+
+            }else if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE);
+
+            }else{
+                getFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.container, CameraConnectionFragment.newInstance())
+                        .commit();
+
+            }
+
         }
     }
 
 
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[],
+                                           int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_CAMERA: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                            Toast.makeText(this, R.string.request_permission_write_external_storage , Toast.LENGTH_SHORT).show();
+                        }
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE);
+
+
+                    }else{
+
+                        getFragmentManager()
+                                .beginTransaction()
+                                .replace(R.id.container, CameraConnectionFragment.newInstance())
+                                .commit();
+
+                    }
+
+                } else {
+                    Toast.makeText(this, R.string.request_permission_camera , Toast.LENGTH_SHORT).show();
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, MY_PERMISSIONS_CAMERA);
+
+                }
+                return;
+            }
+            case MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    getFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.container, CameraConnectionFragment.newInstance())
+                            .commit();
+
+
+                } else {
+                    Toast.makeText(this, R.string.request_permission_write_external_storage , Toast.LENGTH_SHORT).show();
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_WRITE_EXTERNAL_STORAGE);
+
+                }
+                return;
+            }
+        }
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {

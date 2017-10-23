@@ -4,4 +4,7 @@
     <string name="description_info">Select an image or open camera</string>
     <string name="request_permission">This sample needs camera permission.</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="request_permission_camera">You have to accept the camera permission to use entirely the app.</string>
+    <string name="request_permission_write_external_storage">You have to accept the write external storage permission to use entirely the app.</string>
+    <string name="request_permission_app">You should accept the permissions to use the app.</string>
 </resources>
