@@ -11,10 +11,14 @@ public class Main {
 
         Notes notes = new Notes();
 
+
         System.out.println(notes.getFrequency(1, NomNotes.DO));
         System.out.println(notes.getFrequency(3, NomNotes.FA));
         System.out.println(notes.getFrequency(2, NomNotes.SIb));
+
+
         System.out.println("Salut");
+
 
     }
 
