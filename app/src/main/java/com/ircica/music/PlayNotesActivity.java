@@ -92,7 +92,6 @@ public class PlayNotesActivity extends AppCompatActivity{
 
         AudioParameters.init(this);
         bindService(new Intent(this, PdService.class), pdConnection, BIND_AUTO_CREATE);
-
         initGui();
     }
 
@@ -105,7 +104,6 @@ public class PlayNotesActivity extends AppCompatActivity{
             pdService = null;
         }
     }
-
 
 
     /**
