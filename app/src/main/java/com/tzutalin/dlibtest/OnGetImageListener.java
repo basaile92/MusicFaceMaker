@@ -66,7 +66,6 @@ public class OnGetImageListener implements OnImageAvailableListener {
 
     private Context mContext;
     private FaceDet mFaceDet;
-    private FloatingCameraWindow mWindow;
     private Paint mFaceLandmardkPaint;
 
     public void initialize(
@@ -75,7 +74,6 @@ public class OnGetImageListener implements OnImageAvailableListener {
         this.mContext = context;
         this.mInferenceHandler = handler;
         mFaceDet = new FaceDet(Constants.getFaceShapeModelPath());
-        mWindow = new FloatingCameraWindow(mContext);
 
         mFaceLandmardkPaint = new Paint();
         mFaceLandmardkPaint.setColor(Color.GREEN);
@@ -89,44 +87,14 @@ public class OnGetImageListener implements OnImageAvailableListener {
                 mFaceDet.release();
             }
 
-            if (mWindow != null) {
-                mWindow.release();
-            }
         }
     }
-
-    private float[] multiply(float[] A, float[] B) {
-
-
-        float[] C = new float[9];
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                C[3*i + j] = 0.00000f;
-            }
-        }
-
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                for (int k = 0; k < 3; k++) {
-                    C[3*i + j] += A[3*i+ k] * B[3* k + j];
-                }
-            }
-        }
-
-        return C;
-    }
-
 
     private void drawResizedBitmap(final Bitmap src, final Bitmap dst) {
 
-        float[] mirrorY = { -1, 0, 0, 0, 1, 0, 0, 0, 1};
         Display getOrient = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-        int orientation = Configuration.ORIENTATION_UNDEFINED;
         Point point = new Point();
         getOrient.getSize(point);
-        int screen_width = point.x;
-        int screen_height = point.y;
-        orientation = Configuration.ORIENTATION_PORTRAIT;
         mScreenRotation = 270;
 
         final float minDim = Math.min(src.getWidth(), src.getHeight());
@@ -232,34 +200,29 @@ public class OnGetImageListener implements OnImageAvailableListener {
                 new Runnable() {
                     @Override
                     public void run() {
-                        if (!new File(Constants.getFaceShapeModelPath()).exists()) {
-                            FileUtils.copyFileFromRawToOthers(mContext, R.raw.shape_predictor_68_face_landmarks, Constants.getFaceShapeModelPath());
-                        }
 
                         List<VisionDetRet> results;
                         synchronized (OnGetImageListener.this) {
                             results = mFaceDet.detect(mCroppedBitmap);
                         }
-                        // Draw on bitmap
                         if (results != null) {
                             for (final VisionDetRet ret : results) {
-                                float resizeRatio = 1.0f;
-                                Canvas canvas = new Canvas(mCroppedBitmap);
 
-                                // Draw landmark
-                                ArrayList<Point> landmarks = ret.getFaceLandmarks();
-                                for (Point point : landmarks) {
-                                    int pointX = (int) (point.x * resizeRatio);
-                                    int pointY = (int) (point.y * resizeRatio);
-                                    canvas.drawCircle(pointX, pointY, 2, mFaceLandmardkPaint);
-                                }
+                                ArrayList<Point> points = getLandMark(ret);
                             }
                         }
-                        mWindow.setRGBBitmap(mCroppedBitmap);
-                        mIsComputing = false;
                     }
                 });
 
         Trace.endSection();
     }
+
+    public ArrayList<Point> getLandMark(VisionDetRet ret){
+
+        return ret.getFaceLandmarks();
+
+    }
+
+
 }
+
