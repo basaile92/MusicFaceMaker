@@ -30,11 +30,13 @@ public class PlayNotesActivity extends AppCompatActivity{
 
     Button btnPlaySound;
 
+
     /**
      * The PdService is provided by the pd-for-android library.
      */
     private PdService pdService = null;
 
+    private Notes notes = new Notes();
 
     /**
      * Initialises the pure data service for playing audio and receiving control commands.
@@ -114,7 +116,7 @@ public class PlayNotesActivity extends AppCompatActivity{
             @Override
             public boolean onTouch( View v, MotionEvent event ) {
                 if ( event.getAction() == MotionEvent.ACTION_DOWN ) {
-                    PdBase.sendFloat( "osc_pitch", new Note(HauteurNote.DO, 2).getFrequence() );
+                    PdBase.sendFloat( "osc_pitch", notes.getFrequency(3,NomNotes.DOd) );
                     PdBase.sendFloat( "osc_volume", 1 ); // send volume (0 to 1)
 
                 } else if ( event.getAction() == MotionEvent.ACTION_UP ) {
