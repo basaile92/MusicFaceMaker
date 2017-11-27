@@ -40,6 +40,7 @@ def AAVersion = '4.0.0'
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    //noinspection GradleCompatible
     compile "com.android.support:appcompat-v7:${rootProject.ext.androidSupportSdkVersion}"
     compile "com.android.support:design:${rootProject.ext.androidSupportSdkVersion}"
     compile project(':dlib')
