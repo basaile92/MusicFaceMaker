@@ -24,15 +24,19 @@
         <activity
             android:name=".CameraActivity"
             android:label="@string/app_name"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
 
-        </activity>
-        <activity android:name="com.ircica.music.PlayNotesActivity">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+
+        <activity android:name="com.ircica.music.PlayNotesActivity">
+
         </activity>
         <service android:name="org.puredata.android.service.PdService" />
     </application>

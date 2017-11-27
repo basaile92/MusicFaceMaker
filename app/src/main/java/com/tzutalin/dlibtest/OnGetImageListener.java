@@ -219,7 +219,14 @@ public class OnGetImageListener implements OnImageAvailableListener {
 
     public ArrayList<Point> getLandMark(VisionDetRet ret){
 
+        ArrayList<Point> points = getLandMark(ret);
+        for(Point point: points){
+
+            Log.e("Point", point.toString());
+        }
+
         return ret.getFaceLandmarks();
+
 
     }
 
